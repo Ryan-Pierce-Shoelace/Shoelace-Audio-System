@@ -16,6 +16,6 @@
     }
   ],
   "dependencies": {
-    "com.shoelace.soap.variables": "https://github.com/Ryan-Pierce-Shoelace/SOAP-Variables.git#main"
+    "ca.shoelacestudios.soap.variables": "https://github.com/Ryan-Pierce-Shoelace/SOAP-Variables.git#main"
   }
 }
