@@ -1,6 +1,6 @@
-using Shoelace.Events;
+using ShoelaceStudios.SOAP.Events;
 
-namespace Shoelace.Audio.SOEvent
+namespace ShoelaceStudios.Audio.SOEvent
 {
     public class SoundSOEventListener : BaseSOEventListener<SoundConfig, SoundSOEvent, SoundEventResponse> { }
 }

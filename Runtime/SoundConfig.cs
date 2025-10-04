@@ -4,7 +4,7 @@ using FMOD.Studio;
 using FMODUnity;
 using UnityEngine;
 
-namespace Shoelace.Audio
+namespace ShoelaceStudios.Audio
 {
 	[CreateAssetMenu(fileName = "New Sound Config", menuName = "Audio/Sound Config")]
 	public class SoundConfig : ScriptableObject

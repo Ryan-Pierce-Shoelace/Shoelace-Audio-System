@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using FMOD.Studio;
 using FMODUnity;
-using Shoelace.Audio.SoundPlayers;
+using ShoelaceStudios.Audio.SoundPlayers;
 using UnityEngine;
 using UnityUtils;
 
-namespace Shoelace.Audio
+namespace ShoelaceStudios.Audio
 {
 	public class AudioManager : PersistentSingleton<AudioManager>
 	{

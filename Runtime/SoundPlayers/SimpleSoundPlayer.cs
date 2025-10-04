@@ -1,4 +1,4 @@
-namespace Shoelace.Audio.SoundPlayers
+namespace ShoelaceStudios.Audio.SoundPlayers
 {
 	public class SimpleSoundPlayer : AbstractSoundPlayer
 	{

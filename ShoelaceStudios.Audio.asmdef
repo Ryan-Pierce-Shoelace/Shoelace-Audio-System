@@ -1,6 +1,6 @@
 {
-    "name": "Shoelace.Audio",
-    "rootNamespace": "Shoelace",
+    "name": "ShoelaceStudios.Audio",
+    "rootNamespace": "ShoelaceStudio.Audio",
     "references": [
         "GUID:0c752da273b17c547ae705acf0f2adf2",
         "GUID:a2ea232d950f87b4396e05fa9e784304",
