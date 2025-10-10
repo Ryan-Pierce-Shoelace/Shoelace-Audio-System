@@ -4,7 +4,7 @@ using FMODUnity;
 using UnityEngine;
 using STOP_MODE = FMOD.Studio.STOP_MODE;
 
-namespace ShoelaceStudios.Audio
+namespace ShoelaceStudios.AudioSystem
 {
     public class MusicSystem : IDisposable
     {

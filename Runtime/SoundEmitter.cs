@@ -1,7 +1,7 @@
 using FMODUnity;
 using UnityEngine;
 
-namespace ShoelaceStudios.Audio
+namespace ShoelaceStudios.AudioSystem
 {
 	[RequireComponent(typeof(StudioEventEmitter))]
 	public class SoundEmitter : MonoBehaviour

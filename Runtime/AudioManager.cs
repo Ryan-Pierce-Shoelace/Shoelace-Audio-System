@@ -1,13 +1,13 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using FMOD.Studio;
 using FMODUnity;
-using ShoelaceStudios.Audio.SoundPlayers;
+using ShoelaceStudios.AudioSystem.SoundPlayers;
+using ShoelaceStudios.Utilities.Singleton;
 using UnityEngine;
-using UnityUtils;
 
-namespace ShoelaceStudios.Audio
+namespace ShoelaceStudios.AudioSystem
 {
     public class AudioManager : PersistentSingleton<AudioManager>
     {

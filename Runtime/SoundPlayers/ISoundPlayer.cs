@@ -1,6 +1,6 @@
 using System;
 
-namespace ShoelaceStudios.Audio.SoundPlayers
+namespace ShoelaceStudios.AudioSystem.SoundPlayers
 {
     public interface ISoundPlayer : IDisposable
     {
