@@ -1,7 +1,7 @@
 using FMODUnity;
 using UnityEngine;
 
-namespace ShoelaceStudios.AudioSystem.SoundPlayers
+namespace ShoelaceStudios.AudioSystem
 {
 	public class AttachedSoundPlayer : AbstractSoundPlayer
 	{

@@ -1,7 +1,7 @@
 using ShoelaceStudios.SOAP.Events;
 using UnityEngine;
 
-namespace ShoelaceStudios.AudioSystem.SOEvent
+namespace ShoelaceStudios.AudioSystem
 {
     [CreateAssetMenu(fileName = "New Void Event", menuName = "SO Architecture/SO Event/Sound Event")]
     public class SoundSOEvent : BaseSOEvent<SoundConfig>

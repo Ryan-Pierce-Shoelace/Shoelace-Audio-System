@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using FMOD.Studio;
 using FMODUnity;
-using ShoelaceStudios.AudioSystem.SoundPlayers;
 using ShoelaceStudios.Utilities.Singleton;
 using UnityEngine;
 
@@ -42,9 +41,27 @@ namespace ShoelaceStudios.AudioSystem
         private MusicSystem musicSystem;
 
         #region Setup
+        
+        // [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Initialize()
+        {
+            if (Instance != null)
+            {
+                Instance.InitializeSystem();
+            }
+        }
+
+        protected override void Awake()
+        {
+            base.Awake();
+            InitializeSystem();
+        }
+        
 
         public void InitializeSystem()
         {
+            if (activeSounds != null) return;
+            
             activeSounds = new Dictionary<string, ISoundPlayer>();
             activeEmitters = new HashSet<SoundEmitter>();
             musicSystem = new MusicSystem();

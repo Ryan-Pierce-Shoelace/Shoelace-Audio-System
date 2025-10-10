@@ -2,7 +2,7 @@ using FMOD.Studio;
 using FMODUnity;
 using STOP_MODE = FMOD.Studio.STOP_MODE;
 
-namespace ShoelaceStudios.AudioSystem.SoundPlayers
+namespace ShoelaceStudios.AudioSystem
 {
 	public class AbstractSoundPlayer : ISoundPlayer
 	{
