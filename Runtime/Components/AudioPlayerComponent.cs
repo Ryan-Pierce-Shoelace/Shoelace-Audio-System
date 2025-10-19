@@ -4,42 +4,47 @@ namespace ShoelaceStudios.AudioSystem
 {
 	public class AudioPlayerComponent : MonoBehaviour
 	{
-		private ISoundPlayer currentPlayer;
+		[SerializeField] private SoundConfig soundConfig;
         
-		public void PlaySound(SoundConfig config)
+		private ISoundPlayer player;
+        
+		public void Play()
 		{
-			StopSound(false);
-            
-			if (config != null)
+			if (player == null && soundConfig != null)
 			{
-				currentPlayer = AudioManager.Instance.CreateSound(config);
-				currentPlayer.Play();
+				player = AudioManager.Instance.CreateSound(soundConfig);
 			}
+            
+			player?.Play();
 		}
         
-		public void StopSound(bool fadeOut = true)
+		public void Stop(bool fadeOut = true)
 		{
-			if (currentPlayer != null)
-			{
-				currentPlayer.Stop(fadeOut);
-				currentPlayer.Dispose();
-				currentPlayer = null;
-			}
+			player?.Stop(fadeOut);
 		}
         
 		public void SetVolume(float volume)
 		{
-			currentPlayer?.SetVolume(volume);
+			player?.SetVolume(volume);
 		}
         
-		public bool IsPlaying()
+		public void SetParameter(string paramName, float value)
 		{
-			return currentPlayer != null;
+			player?.SetParameter(paramName, value);
+		}
+        
+		public bool HasPlayer()
+		{
+			return player != null;
 		}
         
 		private void OnDestroy()
 		{
-			StopSound(false);
+			if (player == null) return;
+
+			player.Stop(false);
+			player.Dispose();
+			player = null;
 		}
 	}
 }
