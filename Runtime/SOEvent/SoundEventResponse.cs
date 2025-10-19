@@ -1,6 +1,7 @@
+using ShoelaceStudios.AudioSystem;
 using UnityEngine.Events;
 
-namespace ShoelaceStudios.AudioSystem
+namespace AudioSystem.Runtime.SOEvent
 {
     [System.Serializable]
     public class SoundEventResponse : UnityEvent<SoundConfig> { }

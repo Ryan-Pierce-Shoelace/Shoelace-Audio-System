@@ -1,0 +1,17 @@
+{
+    "name": "ShoelaceStudios.Audio.Events",
+    "rootNamespace": "",
+    "references": [
+        "GUID:a2ea232d950f87b4396e05fa9e784304",
+        "GUID:87c40a64c6458204891c77fe6ee9e908"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
