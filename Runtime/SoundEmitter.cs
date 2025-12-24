@@ -22,10 +22,7 @@ namespace ShoelaceStudios.AudioSystem
 		{
 			AudioManager.Instance.RegisterEmitter(this);
 
-			if (playOnStart)
-			{
-				Play();
-			}
+			if (playOnStart) Play();
 		}
 
 		private void SetupEventEmitter()
@@ -45,6 +42,7 @@ namespace ShoelaceStudios.AudioSystem
 		public void Play()
 		{
 			if (soundConfig == null) return;
+
 			studioEventEmitter.Play();
 			SetVolume(soundConfig.DefaultVolume);
 		}
@@ -57,6 +55,7 @@ namespace ShoelaceStudios.AudioSystem
 		public void SetVolume(float volume)
 		{
 			if (!studioEventEmitter.EventInstance.isValid()) return;
+
 			studioEventEmitter.EventInstance.setVolume(volume);
 		}
 

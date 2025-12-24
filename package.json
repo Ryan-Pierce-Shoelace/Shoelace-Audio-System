@@ -1,6 +1,6 @@
 {
   "name": "ca.shoelacestudios.audio",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "displayName": "Shoelace Audio",
   "description": "Shoelace Dev team system for handling FMOD in with SOAP disciplines. REQUIRES FMOD",
   "unity": "2021.3",

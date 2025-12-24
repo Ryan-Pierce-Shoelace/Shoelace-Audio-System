@@ -37,16 +37,18 @@ namespace ShoelaceStudios.AudioSystem
 		// [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
 		private static void Initialize()
 		{
-			if (Instance != null)
-			{
-				Instance.InitializeSystem();
-			}
+			if (Instance != null) Instance.InitializeSystem();
 		}
 
 		protected override void Awake()
 		{
 			base.Awake();
 			InitializeSystem();
+		}
+
+		private void Start()
+		{
+			if (playMusicOnStart) PlayStartingMusic();
 		}
 
 
@@ -68,10 +70,7 @@ namespace ShoelaceStudios.AudioSystem
 
 		public void PlayStartingMusic()
 		{
-			if (playMusicOnStart && startingMusic != null)
-			{
-				PlayMusic(startingMusic);
-			}
+			if (playMusicOnStart && startingMusic != null) PlayMusic(startingMusic);
 
 			UpdateAllVolumes();
 		}
@@ -204,10 +203,7 @@ namespace ShoelaceStudios.AudioSystem
 
 		public void UnregisterEmitter(SoundEmitter emitter)
 		{
-			if (emitter != null)
-			{
-				activeEmitters.Remove(emitter);
-			}
+			if (emitter != null) activeEmitters.Remove(emitter);
 		}
 
 		#endregion
@@ -217,32 +213,20 @@ namespace ShoelaceStudios.AudioSystem
 
 		public void StopAllSounds()
 		{
-			foreach (ISoundPlayer sound in activeSounds.Values)
-			{
-				sound.Stop();
-			}
+			foreach (ISoundPlayer sound in activeSounds.Values) sound.Stop();
 
-			foreach (SoundEmitter emitter in activeEmitters)
-			{
-				emitter.Stop();
-			}
+			foreach (SoundEmitter emitter in activeEmitters) emitter.Stop();
 		}
 
 		private void OnDestroy()
 		{
 			if (Instance == this)
 			{
-				foreach (ISoundPlayer sound in activeSounds.Values)
-				{
-					sound.Dispose();
-				}
+				foreach (ISoundPlayer sound in activeSounds.Values) sound.Dispose();
 
 				activeSounds.Clear();
 
-				foreach (SoundEmitter emitter in activeEmitters.Where(emitter => emitter != null))
-				{
-					Destroy(emitter.gameObject);
-				}
+				foreach (SoundEmitter emitter in activeEmitters.Where(emitter => emitter != null)) Destroy(emitter.gameObject);
 
 				activeEmitters.Clear();
 

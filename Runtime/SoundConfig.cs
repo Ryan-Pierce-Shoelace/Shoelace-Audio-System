@@ -13,14 +13,14 @@ namespace ShoelaceStudios.AudioSystem
 		[SerializeField] private bool is3D;
 		[SerializeField] private float defaultVolume = 1f;
 
-		[SerializeField] 
+		[SerializeField]
 		private List<ParameterConfig> parameters = new();
 
 		public EventReference EventRef => eventReference;
 		public bool Is3D => is3D;
 		public float DefaultVolume => defaultVolume;
 		public IReadOnlyList<ParameterConfig> Parameters => parameters;
-		
+
 		[Serializable]
 		public struct ParameterConfig
 		{
@@ -45,14 +45,15 @@ namespace ShoelaceStudios.AudioSystem
 			for (int i = 0; i < paramCount; i++)
 			{
 				eventDescription.getParameterDescriptionByIndex(i, out PARAMETER_DESCRIPTION paramDesc);
-				parameters.Add(new ParameterConfig
-				{
-					Name = paramDesc.name,
-					ID = paramDesc.id,
-					DefaultValue = paramDesc.defaultvalue,
-					MinValue = paramDesc.minimum,
-					MaxValue = paramDesc.maximum
-				});
+				parameters.Add(
+					new ParameterConfig
+					{
+						Name = paramDesc.name,
+						ID = paramDesc.id,
+						DefaultValue = paramDesc.defaultvalue,
+						MinValue = paramDesc.minimum,
+						MaxValue = paramDesc.maximum
+					});
 			}
 		}
 	}

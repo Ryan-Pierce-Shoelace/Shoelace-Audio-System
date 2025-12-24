@@ -1,18 +1,18 @@
 {
-    "name": "ShoelaceStudios.Audio",
-    "rootNamespace": "ShoelaceStudios",
-    "references": [
-        "GUID:0c752da273b17c547ae705acf0f2adf2",
-        "GUID:a2ea232d950f87b4396e05fa9e784304",
-        "GUID:b1f7bd1f5dd732b47a95ef00f989bbd4"
-    ],
-    "includePlatforms": [],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "ShoelaceStudios.Audio",
+  "rootNamespace": "ShoelaceStudios",
+  "references": [
+    "GUID:0c752da273b17c547ae705acf0f2adf2",
+    "GUID:a2ea232d950f87b4396e05fa9e784304",
+    "GUID:b1f7bd1f5dd732b47a95ef00f989bbd4"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }
