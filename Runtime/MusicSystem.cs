@@ -8,51 +8,117 @@ namespace ShoelaceStudios.AudioSystem
 {
 	public class MusicSystem : IDisposable
 	{
-		public float Volume
-		{
-			get => volume;
-			set
-			{
-				volume = value;
-				if (currentMusic.isValid())
-					currentMusic.setVolume(volume);
-			}
-		}
-
-
-		private float volume = 1f;
-
 		private EventInstance currentMusic;
 		private EventInstance nextMusic;
 		private SoundConfig currentConfig;
+		private SoundConfig pendingConfig;
+		private float pendingFadeTime;
 		private bool isFading;
+		private bool isPaused;
 		private bool isValid = true;
 
-		private const float UPDATE_INTERVAL = 0.02f;
+		#region Playback
 
-		public async void PlayMusic(SoundConfig config, float fadeTime)
+		public async Awaitable PlayMusic(SoundConfig config, float fadeTime = 2f)
 		{
-			if (!isValid || isFading) return;
+			if (!isValid || config == null) return;
+			if (IsSameMusicPlaying(config)) return;
 
-			if (IsSameMusicPlaying(config))
+			if (isFading)
+			{
+				pendingConfig = config;
+				pendingFadeTime = fadeTime;
 				return;
+			}
 
 			if (currentMusic.isValid())
-			{
 				await CrossfadeToNewMusic(config, fadeTime);
-			}
 			else
+				StartMusic(config);
+		}
+
+		public void PauseMusic()
+		{
+			if (!isValid || !currentMusic.isValid() || isPaused) return;
+
+			currentMusic.setPaused(true);
+			if (nextMusic.isValid()) nextMusic.setPaused(true);
+			isPaused = true;
+		}
+
+		public void ResumeMusic()
+		{
+			if (!isValid || !currentMusic.isValid() || !isPaused) return;
+
+			currentMusic.setPaused(false);
+			if (nextMusic.isValid()) nextMusic.setPaused(false);
+			isPaused = false;
+		}
+
+		public async Awaitable StopMusic(float fadeTime = 2f)
+		{
+			if (!isValid || !currentMusic.isValid() || isFading) return;
+
+			try
 			{
-				currentMusic = RuntimeManager.CreateInstance(config.EventRef);
-				currentMusic.setVolume(1f);
-				currentMusic.start();
-				currentConfig = config;
+				isFading = true;
+				float elapsed = 0f;
+
+				while (elapsed < fadeTime && currentMusic.isValid())
+				{
+					elapsed += Time.deltaTime;
+					currentMusic.setVolume(1f - Mathf.Clamp01(elapsed / fadeTime));
+					await Awaitable.NextFrameAsync();
+				}
+
+				if (!currentMusic.isValid()) return;
+
+				currentMusic.stop(STOP_MODE.IMMEDIATE);
+				currentMusic.release();
+				currentMusic = default;
+				currentConfig = null;
+				isPaused = false;
+			}
+			finally
+			{
+				isFading = false;
 			}
 		}
 
-		private bool IsSameMusicPlaying(SoundConfig config)
+		public void StopMusicImmediate()
 		{
-			return currentConfig == config && currentMusic.isValid();
+			if (!isValid) return;
+
+			if (currentMusic.isValid())
+			{
+				currentMusic.stop(STOP_MODE.IMMEDIATE);
+				currentMusic.release();
+				currentMusic = default;
+			}
+
+			if (nextMusic.isValid())
+			{
+				nextMusic.stop(STOP_MODE.IMMEDIATE);
+				nextMusic.release();
+				nextMusic = default;
+			}
+
+			currentConfig = null;
+			pendingConfig = null;
+			isFading = false;
+			isPaused = false;
+		}
+
+		#endregion
+
+		#region Crossfade
+
+		private void StartMusic(SoundConfig config)
+		{
+			currentMusic = RuntimeManager.CreateInstance(config.EventRef);
+			currentMusic.setVolume(1f);
+			currentMusic.start();
+			currentConfig = config;
 		}
 
 		private async Awaitable CrossfadeToNewMusic(SoundConfig config, float fadeTime)
@@ -62,7 +128,7 @@ namespace ShoelaceStudios.AudioSystem
 				isFading = true;
 
 				nextMusic = RuntimeManager.CreateInstance(config.EventRef);
-				nextMusic.setVolume(0);
+				nextMusic.setVolume(0f);
 				nextMusic.start();
 
 				await PerformCrossfade(fadeTime);
@@ -71,34 +137,44 @@ namespace ShoelaceStudios.AudioSystem
 			}
 			catch (Exception e)
 			{
-				Debug.LogError($"Error during music crossfade: {e.Message}");
+				Debug.LogError($"[MusicSystem] Crossfade error: {e.Message}");
+
 				if (nextMusic.isValid())
 				{
 					nextMusic.stop(STOP_MODE.IMMEDIATE);
 					nextMusic.release();
+					nextMusic = default;
 				}
 			}
 			finally
 			{
 				isFading = false;
+
+				if (pendingConfig != null)
+				{
+					SoundConfig pending = pendingConfig;
+					float pendingFade = pendingFadeTime;
+					pendingConfig = null;
+					await PlayMusic(pending, pendingFade);
+				}
 			}
 		}
 
 		private async Awaitable PerformCrossfade(float fadeTime)
 		{
-			float elapsed = 0;
-
+			float elapsed = 0f;
 			while (elapsed < fadeTime)
 			{
-				float t = elapsed / fadeTime;
-				if (currentMusic.isValid()) currentMusic.setVolume(1 - t);
+				elapsed += Time.deltaTime;
+				float t = Mathf.Clamp01(elapsed / fadeTime);
+				if (currentMusic.isValid()) currentMusic.setVolume(1f - t);
 				if (nextMusic.isValid()) nextMusic.setVolume(t);
-
-				await Awaitable.WaitForSecondsAsync(.02f);
-				elapsed += UPDATE_INTERVAL;
+				await Awaitable.NextFrameAsync();
 			}
-		}
 
+			if (currentMusic.isValid()) currentMusic.setVolume(0f);
+			if (nextMusic.isValid()) nextMusic.setVolume(1f);
+		}
 
 		private void SwapToNewMusic(SoundConfig config)
 		{
@@ -113,34 +189,15 @@ namespace ShoelaceStudios.AudioSystem
 			currentConfig = config;
 		}
 
+		#endregion
 
-		public async void StopMusic(float fadeTime)
-		{
-			if (!isValid || !currentMusic.isValid() || isFading) return;
+		#region Helpers
 
-			try
-			{
-				isFading = true;
-				float elapsed = 0;
+		private bool IsSameMusicPlaying(SoundConfig config) => currentConfig == config && currentMusic.isValid();
 
-				while (elapsed < fadeTime && currentMusic.isValid())
-				{
-					currentMusic.setVolume(1 - elapsed / fadeTime);
-					await Awaitable.WaitForSecondsAsync(.02f);
-					elapsed += UPDATE_INTERVAL;
-				}
+		#endregion
 
-				if (!currentMusic.isValid()) return;
-
-				currentMusic.stop(STOP_MODE.IMMEDIATE);
-				currentMusic.release();
-				currentConfig = null;
-			}
-			finally
-			{
-				isFading = false;
-			}
-		}
+		#region Cleanup
 
 		public void Dispose()
 		{
@@ -162,12 +219,14 @@ namespace ShoelaceStudios.AudioSystem
 			}
 			catch (Exception e)
 			{
-				Debug.LogError($"Error disposing music system: {e.Message}");
+				Debug.LogError($"[MusicSystem] Dispose error: {e.Message}");
 			}
 			finally
 			{
 				isValid = false;
 			}
 		}
+
+		#endregion
 	}
 }

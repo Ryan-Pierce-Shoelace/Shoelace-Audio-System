@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using FMOD.Studio;
@@ -34,21 +35,21 @@ namespace ShoelaceStudios.AudioSystem
 
 		#region Setup
 
-		// [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-		private static void Initialize()
-		{
-			if (Instance != null) Instance.InitializeSystem();
-		}
-
 		protected override void Awake()
 		{
 			base.Awake();
 			InitializeSystem();
 		}
 
-		private void Start()
+		private IEnumerator Start()
 		{
-			if (playMusicOnStart) PlayStartingMusic();
+			while (!RuntimeManager.HaveAllBanksLoaded)
+				yield return null;
+
+			yield return null;
+
+			if (playMusicOnStart && startingMusic != null) 
+				PlayStartingMusic();
 		}
 
 
@@ -65,13 +66,17 @@ namespace ShoelaceStudios.AudioSystem
 			sfxBus = RuntimeManager.GetBus("bus:/SFX");
 			ambientBus = RuntimeManager.GetBus("bus:/Ambience");
 
+			masterVolume = PlayerPrefs.GetFloat("MasterVolume", 1f);
+			musicVolume = PlayerPrefs.GetFloat("MusicVolume", 1f);
+			sfxVolume = PlayerPrefs.GetFloat("SFXVolume", 1f);
+			ambientVolume = PlayerPrefs.GetFloat("AmbientVolume", 1f);
+
 			UpdateAllVolumes();
 		}
 
-		public void PlayStartingMusic()
+		private async Awaitable PlayStartingMusic()
 		{
-			if (playMusicOnStart && startingMusic != null) PlayMusic(startingMusic);
-
+			await PlayMusic(startingMusic);
 			UpdateAllVolumes();
 		}
 
@@ -79,24 +84,23 @@ namespace ShoelaceStudios.AudioSystem
 
 		#region Volume Controls
 
-		public void SetMasterVolume(float value)
+		public enum AudioBus
 		{
-			masterBus.setVolume(masterVolume);
+			Master,
+			Music,
+			SFX,
+			Ambient
 		}
 
-		public void SetMusicVolume(float value)
+		public void SetVolume(AudioBus bus, float value)
 		{
-			musicBus.setVolume(musicVolume);
-		}
-
-		public void SetSFXVolume(float value)
-		{
-			sfxBus.setVolume(sfxVolume);
-		}
-
-		public void SetAmbientVolume(float value)
-		{
-			ambientBus.setVolume(ambientVolume);
+			switch (bus)
+			{
+				case AudioBus.Master: MasterVolume = value; break;
+				case AudioBus.Music: MusicVolume = value; break;
+				case AudioBus.SFX: SFXVolume = value; break;
+				case AudioBus.Ambient: AmbientVolume = value; break;
+			}
 		}
 
 
@@ -151,11 +155,15 @@ namespace ShoelaceStudios.AudioSystem
 
 		private void UpdateAllVolumes()
 		{
-			masterBus.setVolume(masterVolume);
-			musicBus.setVolume(musicVolume);
-			sfxBus.setVolume(sfxVolume);
-			ambientBus.setVolume(ambientVolume);
+			masterBus.setVolume(ConvertToFMODVolume(masterVolume));
+			musicBus.setVolume(ConvertToFMODVolume(musicVolume));
+			sfxBus.setVolume(ConvertToFMODVolume(sfxVolume));
+			ambientBus.setVolume(ConvertToFMODVolume(ambientVolume));
 		}
+
+		#endregion
+
+		#region Sound Playback
 
 		private float ConvertToFMODVolume(float sliderValue)
 		{
@@ -163,10 +171,6 @@ namespace ShoelaceStudios.AudioSystem
 
 			return sliderValue * sliderValue;
 		}
-
-		#endregion
-
-		#region Sound Playback
 
 		public void PlayOneShot(SoundConfig config, Vector3 position = default)
 		{
@@ -182,24 +186,29 @@ namespace ShoelaceStudios.AudioSystem
 			return player;
 		}
 
-		public void PlayMusic(SoundConfig music, float fadeTime = 2f)
+		public async Awaitable PlayMusic(SoundConfig music, float fadeTime = 2f)
 		{
-			musicSystem.PlayMusic(music, fadeTime);
+			await musicSystem.PlayMusic(music, fadeTime);
 		}
 
-		public void StopMusic(float fadeTime = 2f)
+		public void PauseMusic() => musicSystem.PauseMusic();
+		public void ResumeMusic() => musicSystem.ResumeMusic();
+
+		public async Awaitable StopMusic(float fadeTime = 2f)
 		{
-			musicSystem.StopMusic(fadeTime);
+			await musicSystem.StopMusic(fadeTime);
 		}
+		public void RegisterEmitter(SoundEmitter emitter)
+		{
+			activeEmitters.Add(emitter);
+		}
+
+		public void StopMusicImmediate() => musicSystem.StopMusicImmediate();
 
 		#endregion
 
 		#region Emitter Management
 
-		public void RegisterEmitter(SoundEmitter emitter)
-		{
-			activeEmitters.Add(emitter);
-		}
 
 		public void UnregisterEmitter(SoundEmitter emitter)
 		{
@@ -207,31 +216,27 @@ namespace ShoelaceStudios.AudioSystem
 		}
 
 		#endregion
-
-
+  
 		#region Cleanup
 
 		public void StopAllSounds()
 		{
 			foreach (ISoundPlayer sound in activeSounds.Values) sound.Stop();
-
 			foreach (SoundEmitter emitter in activeEmitters) emitter.Stop();
 		}
 
 		private void OnDestroy()
 		{
-			if (Instance == this)
-			{
-				foreach (ISoundPlayer sound in activeSounds.Values) sound.Dispose();
+			if (Instance != this) return;
 
-				activeSounds.Clear();
+			foreach (ISoundPlayer sound in activeSounds.Values) sound.Dispose();
+			activeSounds.Clear();
 
-				foreach (SoundEmitter emitter in activeEmitters.Where(emitter => emitter != null)) Destroy(emitter.gameObject);
+			foreach (SoundEmitter emitter in activeEmitters.Where(emitter => emitter != null))
+				Destroy(emitter.gameObject);
+			activeEmitters.Clear();
 
-				activeEmitters.Clear();
-
-				musicSystem?.Dispose();
-			}
+			musicSystem?.Dispose();
 		}
 
 		#endregion

@@ -31,7 +31,7 @@ namespace ShoelaceStudios.AudioSystem
 			public float MaxValue;
 		}
 
-
+		#if UNITY_EDITOR
 		public void LoadParameterDescriptions()
 		{
 			if (eventReference.IsNull) return;
@@ -56,5 +56,6 @@ namespace ShoelaceStudios.AudioSystem
 					});
 			}
 		}
+		#endif
 	}
 }
