@@ -236,6 +236,7 @@ namespace ShoelaceStudios.AudioSystem
 				Destroy(emitter.gameObject);
 			activeEmitters.Clear();
 
+			musicSystem?.StopMusicImmediate();
 			musicSystem?.Dispose();
 		}
 
