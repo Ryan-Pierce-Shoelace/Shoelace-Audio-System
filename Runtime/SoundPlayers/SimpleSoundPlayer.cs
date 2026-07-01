@@ -1,9 +1,9 @@
 namespace ShoelaceStudios.AudioSystem
 {
-	public class SimpleSoundPlayer : AbstractSoundPlayer
-	{
-		public SimpleSoundPlayer(SoundConfig config) : base(config)
-		{
-		}
-	}
+    public class SimpleSoundPlayer : AbstractSoundPlayer
+    {
+        public SimpleSoundPlayer(SoundConfig config) : base(config)
+        {
+        }
+    }
 }

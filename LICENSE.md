@@ -1,2 +1,1 @@
-
-Copyright (C) 2025 Ryan Pierce
+Copyright (C) 2026 Shoelace Studios ltd.

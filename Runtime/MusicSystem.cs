@@ -6,227 +6,262 @@ using STOP_MODE = FMOD.Studio.STOP_MODE;
 
 namespace ShoelaceStudios.AudioSystem
 {
-	public class MusicSystem : IDisposable
-	{
-		private EventInstance currentMusic;
-		private EventInstance nextMusic;
-		private SoundConfig currentConfig;
-		private SoundConfig pendingConfig;
-		private float pendingFadeTime;
-		private bool isFading;
-		private bool isPaused;
-		private bool isValid = true;
+    public class MusicSystem : IDisposable
+    {
+        private EventInstance currentMusic;
+        private EventInstance nextMusic;
+        private SoundConfig currentConfig;
+        private SoundConfig pendingConfig;
+        private float pendingFadeTime;
+        private bool isFading;
+        private bool isPaused;
+        private bool isValid = true;
 
-		#region Playback
+        private int playlistToken;
 
-		public async Awaitable PlayMusic(SoundConfig config, float fadeTime = 2f)
-		{
-			if (!isValid || config == null) return;
-			if (IsSameMusicPlaying(config)) return;
+        #region Playback
 
-			if (isFading)
-			{
-				pendingConfig = config;
-				pendingFadeTime = fadeTime;
-				return;
-			}
+        public async Awaitable PlayMusic(SoundConfig config, float fadeTime = 2f)
+        {
+            playlistToken++;
+            if (!isValid || !config) return;
+            if (IsSameMusicPlaying(config)) return;
 
-			if (currentMusic.isValid())
-				await CrossfadeToNewMusic(config, fadeTime);
-			else
-				StartMusic(config);
-		}
+            if (isFading)
+            {
+                pendingConfig = config;
+                pendingFadeTime = fadeTime;
+                return;
+            }
 
-		public void PauseMusic()
-		{
-			if (!isValid || !currentMusic.isValid() || isPaused) return;
+            if (currentMusic.isValid())
+                await CrossfadeToNewMusic(config, fadeTime);
+            else
+                StartMusic(config);
+        }
 
-			currentMusic.setPaused(true);
-			if (nextMusic.isValid()) nextMusic.setPaused(true);
-			isPaused = true;
-		}
+        public async Awaitable PlayPlaylist(SoundConfig[] tracks, float fadeTime = 2f)
+        {
+            if (!isValid || tracks == null || tracks.Length == 0) return;
 
-		public void ResumeMusic()
-		{
-			if (!isValid || !currentMusic.isValid() || !isPaused) return;
+            foreach (SoundConfig track in tracks)
+            {
+                await PlayMusic(track, fadeTime);
+                int token = playlistToken;
+                if (!isValid) return;
 
-			currentMusic.setPaused(false);
-			if (nextMusic.isValid()) nextMusic.setPaused(false);
-			isPaused = false;
-		}
+                bool reachedPlaying = false;
+                while (isValid && token == playlistToken)
+                {
+                    await Awaitable.NextFrameAsync();
+                    if (token != playlistToken || !currentMusic.isValid()) break;
 
-		public async Awaitable StopMusic(float fadeTime = 2f)
-		{
-			if (!isValid || !currentMusic.isValid() || isFading) return;
+                    currentMusic.getPlaybackState(out PLAYBACK_STATE state);
+                    if (state == PLAYBACK_STATE.PLAYING) reachedPlaying = true;
+                    if (reachedPlaying && !isFading && !isPaused && state == PLAYBACK_STATE.STOPPED) break;
+                }
 
-			try
-			{
-				isFading = true;
-				float elapsed = 0f;
+                if (token != playlistToken) return;
+            }
+        }
 
-				while (elapsed < fadeTime && currentMusic.isValid())
-				{
-					elapsed += Time.deltaTime;
-					currentMusic.setVolume(1f - Mathf.Clamp01(elapsed / fadeTime));
-					await Awaitable.NextFrameAsync();
-				}
+        public void PauseMusic()
+        {
+            if (!isValid || !currentMusic.isValid() || isPaused) return;
 
-				if (!currentMusic.isValid()) return;
+            currentMusic.setPaused(true);
+            if (nextMusic.isValid()) nextMusic.setPaused(true);
+            isPaused = true;
+        }
 
-				currentMusic.stop(STOP_MODE.IMMEDIATE);
-				currentMusic.release();
-				currentMusic = default;
-				currentConfig = null;
-				isPaused = false;
-			}
-			finally
-			{
-				isFading = false;
-			}
-		}
+        public void ResumeMusic()
+        {
+            if (!isValid || !currentMusic.isValid() || !isPaused) return;
 
-		public void StopMusicImmediate()
-		{
-			if (!isValid) return;
+            currentMusic.setPaused(false);
+            if (nextMusic.isValid()) nextMusic.setPaused(false);
+            isPaused = false;
+        }
 
-			if (currentMusic.isValid())
-			{
-				currentMusic.stop(STOP_MODE.IMMEDIATE);
-				currentMusic.release();
-				currentMusic = default;
-			}
+        public async Awaitable StopMusic(float fadeTime = 2f)
+        {
+            if (!isValid || !currentMusic.isValid() || isFading) return;
 
-			if (nextMusic.isValid())
-			{
-				nextMusic.stop(STOP_MODE.IMMEDIATE);
-				nextMusic.release();
-				nextMusic = default;
-			}
+            playlistToken++;
 
-			currentConfig = null;
-			pendingConfig = null;
-			isFading = false;
-			isPaused = false;
-		}
+            try
+            {
+                isFading = true;
+                float elapsed = 0f;
 
-		#endregion
+                while (elapsed < fadeTime && currentMusic.isValid())
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    currentMusic.setVolume(1f - Mathf.Clamp01(elapsed / fadeTime));
+                    await Awaitable.NextFrameAsync();
+                }
 
-		#region Crossfade
+                if (!currentMusic.isValid()) return;
 
-		private void StartMusic(SoundConfig config)
-		{
-			currentMusic = RuntimeManager.CreateInstance(config.EventRef);
-			currentMusic.setVolume(1f);
-			currentMusic.start();
-			currentConfig = config;
-		}
+                currentMusic.stop(STOP_MODE.IMMEDIATE);
+                currentMusic.release();
+                currentMusic = default;
+                currentConfig = null;
+                isPaused = false;
+            }
+            finally
+            {
+                isFading = false;
+            }
+        }
 
-		private async Awaitable CrossfadeToNewMusic(SoundConfig config, float fadeTime)
-		{
-			try
-			{
-				isFading = true;
+        public void StopMusicImmediate()
+        {
+            if (!isValid) return;
 
-				nextMusic = RuntimeManager.CreateInstance(config.EventRef);
-				nextMusic.setVolume(0f);
-				nextMusic.start();
+            playlistToken++;
 
-				await PerformCrossfade(fadeTime);
+            if (currentMusic.isValid())
+            {
+                currentMusic.stop(STOP_MODE.IMMEDIATE);
+                currentMusic.release();
+                currentMusic = default;
+            }
 
-				SwapToNewMusic(config);
-			}
-			catch (Exception e)
-			{
-				Debug.LogError($"[MusicSystem] Crossfade error: {e.Message}");
+            if (nextMusic.isValid())
+            {
+                nextMusic.stop(STOP_MODE.IMMEDIATE);
+                nextMusic.release();
+                nextMusic = default;
+            }
 
-				if (nextMusic.isValid())
-				{
-					nextMusic.stop(STOP_MODE.IMMEDIATE);
-					nextMusic.release();
-					nextMusic = default;
-				}
-			}
-			finally
-			{
-				isFading = false;
+            currentConfig = null;
+            pendingConfig = null;
+            isFading = false;
+            isPaused = false;
+        }
 
-				if (pendingConfig != null)
-				{
-					SoundConfig pending = pendingConfig;
-					float pendingFade = pendingFadeTime;
-					pendingConfig = null;
-					await PlayMusic(pending, pendingFade);
-				}
-			}
-		}
+        #endregion
 
-		private async Awaitable PerformCrossfade(float fadeTime)
-		{
-			float elapsed = 0f;
-			while (elapsed < fadeTime)
-			{
-				elapsed += Time.deltaTime;
-				float t = Mathf.Clamp01(elapsed / fadeTime);
-				if (currentMusic.isValid()) currentMusic.setVolume(1f - t);
-				if (nextMusic.isValid()) nextMusic.setVolume(t);
-				await Awaitable.NextFrameAsync();
-			}
+        #region Crossfade
 
-			if (currentMusic.isValid()) currentMusic.setVolume(0f);
-			if (nextMusic.isValid()) nextMusic.setVolume(1f);
-		}
+        private void StartMusic(SoundConfig config)
+        {
+            currentMusic = RuntimeManager.CreateInstance(config.EventRef);
+            currentMusic.setVolume(1f);
+            currentMusic.start();
+            currentConfig = config;
+        }
 
-		private void SwapToNewMusic(SoundConfig config)
-		{
-			if (currentMusic.isValid())
-			{
-				currentMusic.stop(STOP_MODE.IMMEDIATE);
-				currentMusic.release();
-			}
+        private async Awaitable CrossfadeToNewMusic(SoundConfig config, float fadeTime)
+        {
+            try
+            {
+                isFading = true;
 
-			currentMusic = nextMusic;
-			nextMusic = default;
-			currentConfig = config;
-		}
+                nextMusic = RuntimeManager.CreateInstance(config.EventRef);
+                nextMusic.setVolume(0f);
+                nextMusic.start();
 
-		#endregion
+                await PerformCrossfade(fadeTime);
 
-		#region Helpers
+                SwapToNewMusic(config);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[MusicSystem] Crossfade error: {e.Message}");
 
-		private bool IsSameMusicPlaying(SoundConfig config) => currentConfig == config && currentMusic.isValid();
+                if (nextMusic.isValid())
+                {
+                    nextMusic.stop(STOP_MODE.IMMEDIATE);
+                    nextMusic.release();
+                    nextMusic = default;
+                }
+            }
+            finally
+            {
+                isFading = false;
 
-		#endregion
+                if (pendingConfig != null)
+                {
+                    SoundConfig pending = pendingConfig;
+                    float pendingFade = pendingFadeTime;
+                    pendingConfig = null;
+                    await PlayMusic(pending, pendingFade);
+                }
+            }
+        }
 
-		#region Cleanup
+        private async Awaitable PerformCrossfade(float fadeTime)
+        {
+            float elapsed = 0f;
+            while (elapsed < fadeTime)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / fadeTime);
+                if (currentMusic.isValid()) currentMusic.setVolume(1f - t);
+                if (nextMusic.isValid()) nextMusic.setVolume(t);
+                await Awaitable.NextFrameAsync();
+            }
 
-		public void Dispose()
-		{
-			if (!isValid) return;
+            if (currentMusic.isValid()) currentMusic.setVolume(0f);
+            if (nextMusic.isValid()) nextMusic.setVolume(1f);
+        }
 
-			try
-			{
-				if (currentMusic.isValid())
-				{
-					currentMusic.stop(STOP_MODE.IMMEDIATE);
-					currentMusic.release();
-				}
+        private void SwapToNewMusic(SoundConfig config)
+        {
+            if (currentMusic.isValid())
+            {
+                currentMusic.stop(STOP_MODE.IMMEDIATE);
+                currentMusic.release();
+            }
 
-				if (nextMusic.isValid())
-				{
-					nextMusic.stop(STOP_MODE.IMMEDIATE);
-					nextMusic.release();
-				}
-			}
-			catch (Exception e)
-			{
-				Debug.LogError($"[MusicSystem] Dispose error: {e.Message}");
-			}
-			finally
-			{
-				isValid = false;
-			}
-		}
+            currentMusic = nextMusic;
+            nextMusic = default;
+            currentConfig = config;
+        }
 
-		#endregion
-	}
+        #endregion
+
+        #region Helpers
+
+        private bool IsSameMusicPlaying(SoundConfig config)
+        {
+            return currentConfig == config && currentMusic.isValid();
+        }
+
+        #endregion
+
+        #region Cleanup
+
+        public void Dispose()
+        {
+            if (!isValid) return;
+
+            try
+            {
+                if (currentMusic.isValid())
+                {
+                    currentMusic.stop(STOP_MODE.IMMEDIATE);
+                    currentMusic.release();
+                }
+
+                if (nextMusic.isValid())
+                {
+                    nextMusic.stop(STOP_MODE.IMMEDIATE);
+                    nextMusic.release();
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[MusicSystem] Dispose error: {e.Message}");
+            }
+            finally
+            {
+                isValid = false;
+            }
+        }
+
+        #endregion
+    }
 }
